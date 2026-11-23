@@ -1,0 +1,25 @@
+{
+  "name": "shiming-markdown-chrome",
+  "version": "1.1.9",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "node scripts/build.mjs --watch",
+    "build": "node scripts/build.mjs --production",
+    "clean": "node scripts/build.mjs --clean"
+  },
+  "dependencies": {
+    "@popperjs/core": "^2.11.8",
+    "bootstrap": "^5.3.8",
+    "dompurify": "^3.2.6",
+    "esbuild": "^0.25.5",
+    "fflate": "^0.8.3",
+    "highlight.js": "^11.11.1",
+    "html-to-image": "^1.11.13",
+    "jspdf": "^4.2.1",
+    "katex": "^0.16.22",
+    "markdown-it": "^14.1.0",
+    "markdown-it-texmath": "^1.0.0",
+    "mermaid": "^11.10.0"
+  }
+}

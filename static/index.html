@@ -1,0 +1,769 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Shiming Markdown</title>
+  <link rel="icon" href="icon32.png" type="image/png" sizes="32x32">
+  <link rel="stylesheet" href="katex.min.css">
+  <link rel="stylesheet" href="styles.css">
+  <script src="viewer.min.js"></script>
+  <script src="app.js" type="module"></script>
+</head>
+<body>
+  <header class="topbar">
+    <div class="topbar-brand-group">
+      <div class="brand"><img src="icon128.png" alt=""><span>Shiming Markdown</span></div>
+      <div class="dropdown topbar-actions-dropdown">
+        <button class="topbar-actions-toggle" id="top-actions-toggle" type="button" data-bs-toggle="dropdown" aria-expanded="false" aria-label="更多操作" title="更多操作">
+          <svg class="topbar-actions-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="5" cy="6" r="1"/><path d="M9 6h10M5 12h14M5 18h14"/><circle cx="19" cy="18" r="1"/></svg>
+        </button>
+        <div class="dropdown-menu topbar-actions-menu" aria-labelledby="top-actions-toggle">
+          <button class="dropdown-item" id="open-file" type="button" title="打开 Markdown 文件 (⌘O)">
+            <span>打开文件</span>
+            <span class="dropdown-item-shortcut" id="open-file-shortcut">⌘ O</span>
+          </button>
+          <button class="dropdown-item" id="open-folder" type="button" title="打开本地目录">
+            <span>打开目录</span>
+          </button>
+          <button class="dropdown-item" id="global-search" type="button" title="全局搜索（双击 Shift）">
+            <span>全局搜索</span>
+            <span class="dropdown-item-shortcut">双 Shift</span>
+          </button>
+        </div>
+      </div>
+    </div>
+    <nav id="document-tabs" aria-label="打开的文档"></nav>
+    <button class="document-tab-count" id="document-tab-count" type="button" data-count="0" aria-live="polite" aria-label="共 0 个文档" title="共 0 个文档">0</button>
+  </header>
+  <div class="extension-update-warning" id="extension-update-warning" role="alert" aria-live="polite" hidden>
+    <span class="extension-update-warning__message">扩展已经更新，为了保证功能正常的使用，请先刷新页面。</span>
+    <button class="extension-update-warning__refresh" id="extension-update-refresh" type="button">刷新页面</button>
+  </div>
+  <div class="extension-update-warning file-url-permission-warning" id="file-url-permission-warning" role="alert" aria-live="polite" hidden>
+    <span class="extension-update-warning__message">直接打开本地 Markdown 需要启用“允许访问文件网址”。</span>
+    <button class="extension-update-warning__refresh" id="file-url-permission-link" type="button">开启权限</button>
+  </div>
+  <div id="workspace">
+    <aside id="sidebar">
+      <div class="sidebar-tabs" role="tablist" aria-label="侧边栏面板"><button type="button" role="tab" data-panel="tasks" aria-selected="false">任务<span class="sidebar-tab-count" id="task-count" hidden>0</span></button><button type="button" role="tab" data-panel="files" aria-selected="false">目录</button><button type="button" role="tab" class="active" data-panel="outline" aria-selected="true">大纲</button></div>
+      <input id="sidebar-search" type="search" placeholder="搜索标题、目录或文件…">
+      <div id="file-search-types" class="file-search-types" hidden aria-label="目录搜索类型"></div>
+      <div id="outline-panel" class="side-panel">
+        <div id="panel-outline">
+          <button class="mdr-outline-export-action" id="outline-export-btn" title="导出大纲截图">
+            <svg class="mdr-outline-export-icon" viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/>
+              <circle cx="12" cy="13" r="4"/>
+            </svg>
+            <span>导出大纲截图</span>
+          </button>
+          <div class="mdr-outline-tree"></div>
+        </div>
+      </div>
+      <div id="files-panel" class="side-panel" hidden></div>
+      <section id="tasks-panel" class="side-panel" hidden>
+        <div class="task-panel-header">
+          <span class="task-panel-count" id="task-panel-count">还没有导出任务</span>
+          <button class="task-clear-button" id="task-clear" type="button" disabled>清除已完成</button>
+        </div>
+        <div class="task-export-actions">
+          <button class="btn btn-outline-primary btn-sm" id="export-print" disabled>导出 PDF</button>
+          <button class="btn btn-outline-primary btn-sm" id="export-png" disabled>导出 PNG</button>
+        </div>
+        <div id="task-list" class="task-list">
+          <div class="task-empty"><span class="task-empty-icon">⇧</span><strong>还没有导出任务</strong><span>导出 PDF 或 PNG 后，可在这里查看进度和结果</span></div>
+        </div>
+      </section>
+      <div id="mdr-directory-change-notice" class="mdr-directory-change-notice" hidden aria-live="polite"></div>
+      <div class="sidebar-footer">
+        <button class="sidebar-preferences-button" id="settings" type="button" title="偏好设置 (⌘,)">
+          <span class="settings-icon-wrap"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg></span><span class="settings-text">偏好设置</span>
+        </button>
+        <button class="sidebar-collapse-button" id="sidebar-collapse-toggle" type="button" aria-label="收缩侧边栏" aria-controls="sidebar" aria-expanded="true" title="收缩侧边栏">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3.5" y="4" width="17" height="16" rx="2"/><path d="M9 4v16M15 9l-3 3 3 3"/></svg>
+        </button>
+      </div>
+      <div class="mdr-side__resizer" id="mdr-side-resizer"></div>
+    </aside>
+    <main id="main">
+      <section id="empty-state" class="mdr-onboarding">
+        <!-- 品牌头部 Hero -->
+        <div class="mdr-onboarding-hero">
+          <div class="mdr-onboarding-logo-wrap">
+            <img class="mdr-onboarding-logo" src="icon128.png" alt="Shiming Markdown">
+            <div class="mdr-onboarding-logo-glow" aria-hidden="true"></div>
+          </div>
+          <h1 class="mdr-onboarding-title">打开 Markdown 文档</h1>
+          <p class="mdr-onboarding-desc">在 Chrome 中畅享原生级排版与极速渲染，本地离线解析，隐私零上传。</p>
+        </div>
+
+        <!-- 核心操作与拖拽区域 Drop & Action Card -->
+        <div class="mdr-onboarding-card">
+          <div class="mdr-onboarding-actions">
+            <button id="empty-open-file" class="mdr-btn mdr-btn-primary" type="button">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/>
+                <polyline points="14 2 14 8 20 8"/>
+                <line x1="12" y1="18" x2="12" y2="12"/>
+                <line x1="9" y1="15" x2="15" y2="15"/>
+              </svg>
+              <span>选择文件</span>
+              <kbd class="mdr-kbd-pill" id="empty-shortcut-open">⌘O</kbd>
+            </button>
+            <button id="empty-open-folder" class="mdr-btn mdr-btn-secondary" type="button">
+              <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/>
+              </svg>
+              <span>选择目录</span>
+            </button>
+          </div>
+          <div class="mdr-onboarding-drop-hint">
+            <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+              <path d="M12 3v12m-4-4 4 4 4-4M4 17v2a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-2"/>
+            </svg>
+            <span>也可以将 Markdown 文件或整个目录直接拖入此页面</span>
+          </div>
+        </div>
+
+        <!-- 本地文件直接打开引导卡片（Chrome 关键步骤） -->
+        <div class="mdr-onboarding-permission-card" id="empty-permission-card">
+          <div class="mdr-permission-badge-pending">
+            <div class="mdr-permission-card-header">
+              <div class="mdr-permission-icon-wrap" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+                  <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+              </div>
+              <div class="mdr-permission-header-text">
+                <div class="mdr-permission-title">如何直接在 Chrome 中打开本地文件？</div>
+                <div class="mdr-permission-subtitle">开启 1 个开关，即可在浏览器中双击或拖拽任意 Markdown 文件直接阅读</div>
+              </div>
+            </div>
+            <div class="mdr-permission-steps">
+              <div class="mdr-permission-step">
+                <span class="mdr-step-num">1</span>
+                <span class="mdr-step-text">点击下方按钮前往扩展设置</span>
+              </div>
+              <div class="mdr-permission-step-arrow">→</div>
+              <div class="mdr-permission-step">
+                <span class="mdr-step-num">2</span>
+                <span class="mdr-step-text">打开<strong>“允许访问文件网址”</strong></span>
+              </div>
+              <div class="mdr-permission-step-arrow">→</div>
+              <div class="mdr-permission-step">
+                <span class="mdr-step-num">3</span>
+                <span class="mdr-step-text">直接打开或拖入 <code>.md</code> 文件</span>
+              </div>
+            </div>
+            <div class="mdr-permission-action">
+              <button id="empty-file-permission-link" class="mdr-btn mdr-btn-permission" type="button">
+                <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+                  <polyline points="15 3 21 3 21 9"/>
+                  <line x1="10" y1="14" x2="21" y2="3"/>
+                </svg>
+                <span>前往开启“允许访问文件网址”</span>
+              </button>
+            </div>
+          </div>
+          <div class="mdr-permission-badge-granted" hidden>
+            <div class="mdr-permission-granted-content">
+              <span class="mdr-granted-icon" aria-hidden="true">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M20 6 9 17l-5-5"/>
+                </svg>
+              </span>
+              <span>本地文件直开权限已就绪，可在 Chrome 中直接打开或关联 <code>.md</code> 文档</span>
+            </div>
+          </div>
+          <p class="mdr-permission-drag-tip">开启权限后，也可以将本地 Markdown 文件拖入任意 Chrome 标签页直接打开，文件会替换该标签页的当前内容。</p>
+        </div>
+
+        <!-- 功能亮点微卡片网格 -->
+        <div class="mdr-onboarding-features">
+          <div class="mdr-feature-item">
+            <div class="mdr-feature-icon">📑</div>
+            <div class="mdr-feature-info">
+              <div class="mdr-feature-title">多级大纲与目录</div>
+              <div class="mdr-feature-desc">智能层级解析，支持大纲导出长图</div>
+            </div>
+          </div>
+          <div class="mdr-feature-item">
+            <div class="mdr-feature-icon">📊</div>
+            <div class="mdr-feature-info">
+              <div class="mdr-feature-title">流程图与公式</div>
+              <div class="mdr-feature-desc">支持 Mermaid 绘图与 KaTeX 科学排版</div>
+            </div>
+          </div>
+          <div class="mdr-feature-item">
+            <div class="mdr-feature-icon">⚡</div>
+            <div class="mdr-feature-info">
+              <div class="mdr-feature-title">秒级全局搜索</div>
+              <div class="mdr-feature-desc">双击 Shift 键快速检索所有文档内容</div>
+            </div>
+          </div>
+          <div class="mdr-feature-item">
+            <div class="mdr-feature-icon">🔒</div>
+            <div class="mdr-feature-info">
+              <div class="mdr-feature-title">纯本地离线运行</div>
+              <div class="mdr-feature-desc">沙箱环境解析，隐私数据绝不上云</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- 底部快捷键速查条 -->
+        <div class="mdr-onboarding-footer">
+          <span class="mdr-shortcut-tip"><kbd id="empty-shortcut-open-tip">⌘O</kbd> 打开文件</span>
+          <span class="mdr-shortcut-sep">·</span>
+          <span class="mdr-shortcut-tip"><kbd>Shift</kbd> <kbd>Shift</kbd> 全局搜索</span>
+          <span class="mdr-shortcut-sep">·</span>
+          <span class="mdr-shortcut-tip"><kbd id="empty-shortcut-pref-tip">⌘,</kbd> 偏好设置</span>
+        </div>
+      </section>
+      <article id="preview" class="mdr-preview-area" hidden>
+      </article>
+      <div id="toast" role="status" aria-live="polite"></div>
+    </main>
+  </div>
+  <div id="drop-overlay" class="mdr-drop-overlay" hidden>
+    <div class="mdr-drop-card">
+      <div class="mdr-drop-icon">
+        <svg viewBox="0 0 24 24" width="36" height="36" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M4 14.899A7 7 0 1 1 15.71 8h1.79a4.5 4.5 0 0 1 2.5 8.242"/>
+          <path d="M12 12v9"/>
+          <path d="m8 17 4 4 4-4"/>
+        </svg>
+      </div>
+      <div class="mdr-drop-title">松开即可在此打开</div>
+      <div class="mdr-drop-subtitle">支持拖入 Markdown 文档或整个项目目录</div>
+    </div>
+  </div>
+  <dialog id="drop-refresh-notice" class="mdr-drop-refresh-notice" aria-labelledby="drop-refresh-notice-title">
+    <div class="mdr-modal-header">
+      <div class="mdr-modal-icon-badge" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="10"/>
+          <line x1="12" y1="16" x2="12" y2="12"/>
+          <line x1="12" y1="8" x2="12.01" y2="8"/>
+        </svg>
+      </div>
+      <div class="mdr-modal-header-text">
+        <h2 id="drop-refresh-notice-title" class="mdr-modal-title">关于刷新后继续阅读</h2>
+        <span class="mdr-modal-subtitle">本地文件持久化阅读小建议</span>
+      </div>
+      <form method="dialog">
+        <button type="submit" class="mdr-modal-close-btn" aria-label="关闭提示">
+          <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="18" y1="6" x2="6" y2="18"/>
+            <line x1="6" y1="6" x2="18" y2="18"/>
+          </svg>
+        </button>
+      </form>
+    </div>
+
+    <div class="mdr-modal-body">
+      <!-- 两种打开方式的清晰对比卡片 -->
+      <div class="mdr-tip-comparison">
+        <div class="mdr-tip-row mdr-tip-row--current">
+          <span class="mdr-tip-tag">当前方式</span>
+          <span class="mdr-tip-desc">通过选择或拖入当前工作区打开的文件和目录，刷新网页（⌘R / F5）后需要重新打开。</span>
+        </div>
+        <div class="mdr-tip-row mdr-tip-row--recommended">
+          <span class="mdr-tip-tag mdr-tip-tag--pro">💡 推荐方式</span>
+          <span class="mdr-tip-desc">将本地 <code>.md</code> 文件直接拖入 <strong>Chrome 顶部标签栏</strong>打开，刷新后仍可自动保持阅读位置。</span>
+        </div>
+      </div>
+
+      <!-- 权限开启快速入口 -->
+      <div class="mdr-tip-permission-callout" hidden>
+        <div class="mdr-tip-permission-info">
+          <span class="mdr-tip-permission-icon" aria-hidden="true">🔒</span>
+          <span class="mdr-tip-permission-text">在 Chrome 直接打开本地文件前，需在扩展详情页开启「允许访问文件网址」。</span>
+        </div>
+        <button type="button" id="drop-notice-permission-link" class="mdr-tip-permission-btn">前往开启</button>
+      </div>
+    </div>
+
+    <!-- 底部操作区：左侧“不再提示”，右侧“我知道了” -->
+    <div class="mdr-modal-footer">
+      <label class="mdr-modal-checkbox-label">
+        <input type="checkbox" id="drop-refresh-dont-show">
+        <span>不再提示</span>
+      </label>
+      <form method="dialog">
+        <button type="submit" class="mdr-btn mdr-btn-primary" autofocus>我知道了</button>
+      </form>
+    </div>
+  </dialog>
+  <div id="global-search-dialog" class="modal fade mdr-global-search-dialog" tabindex="-1" aria-label="全局搜索" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="true">
+    <div class="modal-dialog mdr-global-search-modal-dialog" role="document">
+      <div class="modal-content mdr-global-search-card">
+        <div class="mdr-global-search-header">
+          <div class="mdr-global-search-icon" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m20 20-4-4"/></svg>
+          </div>
+          <input id="global-search-input" type="search" autocomplete="off" spellcheck="false" placeholder="搜索目录树中的所有 Markdown 文档" aria-label="全局搜索">
+          <button id="global-search-clear" class="mdr-global-search-clear" type="button" aria-label="清空搜索" title="清空" hidden>
+            <svg viewBox="0 0 20 20" width="16" height="16" fill="currentColor"><path d="M10 1.67a8.33 8.33 0 1 0 0 16.66 8.33 8.33 0 0 0 0-16.66Zm3.54 11.87a.75.75 0 0 1-1.06 0L10 11.06l-2.48 2.48a.75.75 0 1 1-1.06-1.06L8.94 10 6.46 7.52a.75.75 0 1 1 1.06-1.06L10 8.94l2.48-2.48a.75.75 0 0 1 1.06 1.06L11.06 10l2.48 2.48a.75.75 0 0 1 0 1.06Z"/></svg>
+          </button>
+          <div class="mdr-global-search-scopes" role="group" aria-label="搜索范围">
+            <button type="button" class="active" data-search-scope="directories" aria-pressed="true">已选目录 (0 个)</button>
+            <button type="button" data-search-scope="open" aria-pressed="false">打开的文档 (0 个)</button>
+          </div>
+          <button id="global-search-close" class="mdr-global-search-close" type="button" aria-label="关闭全局搜索" title="关闭（Esc）">
+            <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><path d="m6 6 12 12M18 6 6 18"/></svg>
+          </button>
+        </div>
+        <div id="global-search-results" class="mdr-global-search-results" aria-live="polite">
+          <div class="mdr-global-search-placeholder"><span class="mdr-global-search-placeholder-icon">⌕</span><strong>搜索已选目录中的文档</strong><span>输入文字后，将按文档列出匹配内容</span></div>
+        </div>
+        <div class="mdr-global-search-footer">
+          <div class="mdr-global-search-shortcuts"><span><kbd>↑</kbd><kbd>↓</kbd> 选择</span><span><kbd>↵</kbd> 打开</span></div>
+          <div id="global-search-status" class="mdr-global-search-status">输入关键词开始搜索</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div id="settings-dialog" class="modal fade mdr-settings-dialog" tabindex="-1" aria-labelledby="settings-dialog-title" aria-hidden="true" data-bs-backdrop="static" data-bs-keyboard="true">
+    <div class="modal-dialog mdr-settings-modal-dialog" role="document">
+      <div class="modal-content mdr-settings-card">
+      <!-- 左侧分类导航栏 (对齐 App 侧边栏) -->
+      <aside class="mdr-settings-sidebar">
+        <div class="mdr-settings-sidebar-header">
+          <span class="mdr-settings-sidebar-title" id="settings-dialog-title">偏好设置</span>
+        </div>
+        <nav class="mdr-settings-nav" aria-label="偏好设置分类">
+          <button type="button" class="mdr-settings-tab-btn active" data-tab="appearance">
+            <span class="mdr-tab-icon-wrap">
+              <svg class="mdr-tab-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="13.5" cy="6.5" r=".5" fill="currentColor"></circle>
+                <circle cx="17.5" cy="10.5" r=".5" fill="currentColor"></circle>
+                <circle cx="8.5" cy="7.5" r=".5" fill="currentColor"></circle>
+                <circle cx="6.5" cy="12.5" r=".5" fill="currentColor"></circle>
+                <path d="M12 2C6.5 2 2 6.5 2 12s4.5 10 10 10c.926 0 1.648-.746 1.648-1.688 0-.437-.18-.835-.437-1.125-.29-.289-.438-.652-.438-1.125a1.64 1.64 0 0 1 1.668-1.668h1.996c3.051 0 5.563-2.512 5.563-5.563C21.438 6.2 17.2 2 12 2z"></path>
+              </svg>
+            </span>
+            <span class="mdr-tab-label">外观与主题</span>
+          </button>
+          <button type="button" class="mdr-settings-tab-btn" data-tab="typography">
+            <span class="mdr-tab-icon-wrap">
+              <svg class="mdr-tab-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="4 7 4 4 20 4 20 7"></polyline>
+                <line x1="9" y1="20" x2="15" y2="20"></line>
+                <line x1="12" y1="4" x2="12" y2="20"></line>
+              </svg>
+            </span>
+            <span class="mdr-tab-label">排版与阅读</span>
+          </button>
+          <button type="button" class="mdr-settings-tab-btn" data-tab="export">
+            <span class="mdr-tab-icon-wrap">
+              <svg class="mdr-tab-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                <polyline points="14 2 14 8 20 8"></polyline>
+                <line x1="12" y1="18" x2="12" y2="12"></line>
+                <polyline points="9 15 12 18 15 15"></polyline>
+              </svg>
+            </span>
+            <span class="mdr-tab-label">导出设置</span>
+          </button>
+          <button type="button" class="mdr-settings-tab-btn" data-tab="data" hidden>
+            <span class="mdr-tab-icon-wrap">
+              <svg class="mdr-tab-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="5" y="11" width="14" height="10" rx="2"></rect>
+                <path d="M8 11V7a4 4 0 0 1 8 0v4"></path>
+              </svg>
+            </span>
+            <span class="mdr-tab-label">数据与隐私</span>
+          </button>
+          <button type="button" class="mdr-settings-tab-btn" data-tab="about">
+            <span class="mdr-tab-icon-wrap">
+              <svg class="mdr-tab-icon" viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="10"></circle>
+                <line x1="12" y1="16" x2="12" y2="12"></line>
+                <line x1="12" y1="8" x2="12.01" y2="8"></line>
+              </svg>
+            </span>
+            <span class="mdr-tab-label">关于软件</span>
+          </button>
+        </nav>
+        <div class="mdr-settings-sidebar-footer">
+          <div class="mdr-settings-shortcut-hint">
+            <span class="mdr-kbd" id="settings-shortcut-kbd">⌘ ,</span>
+            <span>打开偏好设置</span>
+          </div>
+          <div class="mdr-settings-shortcut-hint">
+            <span class="mdr-kbd">ESC</span>
+            <span>退出此弹窗</span>
+          </div>
+        </div>
+      </aside>
+
+      <!-- 右侧详情展示区 (对齐 App 详情页) -->
+      <main class="mdr-settings-detail">
+        <header class="mdr-settings-header">
+          <div class="mdr-settings-header-text">
+            <h2 id="settings-tab-title">外观与主题</h2>
+            <p id="settings-tab-subtitle">选择适合您阅读环境的色彩风格，偏好设置将自动保存并记录。</p>
+          </div>
+          <button type="button" class="mdr-settings-close-btn" id="settings-close-btn" title="关闭偏好设置 (ESC)" aria-label="关闭">
+            <span class="mdr-settings-close-icon" aria-hidden="true"></span>
+          </button>
+        </header>
+
+        <div class="mdr-settings-body">
+          <!-- 1. 外观与主题 Panel -->
+          <section class="mdr-settings-panel active" data-tab-panel="appearance">
+            <div class="mdr-settings-section-title">主题模式</div>
+            <div class="mdr-theme-cards-grid">
+              <!-- 跟随系统 -->
+              <label class="mdr-theme-card active" data-theme-value="system">
+                <input type="radio" name="pref-theme-radio" value="system" checked>
+                <div class="mdr-theme-card-icon mdr-theme-icon-system">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2">
+                    <circle cx="12" cy="12" r="9"/>
+                    <path d="M12 3a9 9 0 0 0 0 18z" fill="currentColor"/>
+                  </svg>
+                </div>
+                <div class="mdr-theme-card-info">
+                  <span class="mdr-theme-card-name">跟随系统</span>
+                  <span class="mdr-theme-card-desc">根据系统或浏览器的深浅色模式自动自适应切换</span>
+                </div>
+                <div class="mdr-theme-card-check">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                </div>
+              </label>
+
+              <!-- 明亮浅色 -->
+              <label class="mdr-theme-card" data-theme-value="light">
+                <input type="radio" name="pref-theme-radio" value="light">
+                <div class="mdr-theme-card-icon mdr-theme-icon-light">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                    <circle cx="12" cy="12" r="4" fill="currentColor"/>
+                    <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"/>
+                  </svg>
+                </div>
+                <div class="mdr-theme-card-info">
+                  <span class="mdr-theme-card-name">明亮浅色</span>
+                  <span class="mdr-theme-card-desc">明亮清爽浅色模式，还原纸质级纯净阅读质感</span>
+                </div>
+                <div class="mdr-theme-card-check">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                </div>
+              </label>
+
+              <!-- 极客暗黑 -->
+              <label class="mdr-theme-card" data-theme-value="dark">
+                <input type="radio" name="pref-theme-radio" value="dark">
+                <div class="mdr-theme-card-icon mdr-theme-icon-dark">
+                  <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/>
+                  </svg>
+                </div>
+                <div class="mdr-theme-card-info">
+                  <span class="mdr-theme-card-name">极客暗黑</span>
+                  <span class="mdr-theme-card-desc">极客暗黑高对比模式，护眼沉浸，特别适合夜晚与代码排版</span>
+                </div>
+                <div class="mdr-theme-card-check">
+                  <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/></svg>
+                </div>
+              </label>
+            </div>
+
+            <!-- 隐藏的旧 select 供历史逻辑同步兼容 -->
+            <select id="pref-theme" hidden><option value="system">跟随系统</option><option value="light">浅色</option><option value="dark">深色</option></select>
+
+          </section>
+
+          <!-- 2. 排版与阅读 Panel -->
+          <section class="mdr-settings-panel" data-tab-panel="typography">
+            <div class="mdr-settings-section-title">正文缩放与排版</div>
+            <div class="mdr-settings-card-item">
+              <div class="mdr-settings-row-between">
+                <div>
+                  <div class="mdr-row-title">Markdown 内容区宽度</div>
+                  <div class="mdr-row-desc">调整正文两侧阅读边距与中心视口黄金宽度比例</div>
+                </div>
+                <output id="width-output" class="mdr-badge-output">72%</output>
+              </div>
+              <div class="mdr-slider-wrap">
+                <input id="pref-width" type="range" min="45" max="100" value="72">
+                <button type="button" class="mdr-mini-btn" id="pref-width-reset">重置 72%</button>
+              </div>
+              <div class="mdr-pill-presets">
+                <button type="button" class="mdr-pill-btn" data-width="60">窄版 (60%)</button>
+                <button type="button" class="mdr-pill-btn" data-width="72">标准 (72%)</button>
+                <button type="button" class="mdr-pill-btn" data-width="85">宽屏 (85%)</button>
+                <button type="button" class="mdr-pill-btn" data-width="100">全宽 (100%)</button>
+              </div>
+            </div>
+
+            <div class="mdr-settings-section-title">代码块排版</div>
+            <div class="mdr-settings-card-item">
+              <label class="mdr-switch-row">
+                <div class="mdr-switch-info">
+                  <div class="mdr-switch-title">代码区自动换行</div>
+                  <div class="mdr-switch-desc">开启后 Markdown 文档中的代码块会按内容区宽度自动折行；关闭后保持单行并支持横向滚动。</div>
+                </div>
+                <span class="mdr-switch">
+                  <input id="pref-code-wrap" type="checkbox">
+                  <span class="mdr-switch-track"></span>
+                </span>
+              </label>
+
+            </div>
+
+            <div class="mdr-settings-section-title">阅读辅助</div>
+            <div class="mdr-settings-card-item">
+              <label class="mdr-switch-row">
+                <div class="mdr-switch-info">
+                  <div class="mdr-switch-title">显示阅读进度百分比</div>
+                  <div class="mdr-switch-desc">在文档右上角显示当前阅读进度，关闭后隐藏进度徽标。</div>
+                </div>
+                <span class="mdr-switch">
+                  <input id="pref-show-reading-progress" type="checkbox" checked>
+                  <span class="mdr-switch-track"></span>
+                </span>
+              </label>
+            </div>
+
+            <div class="mdr-settings-section-title">提示</div>
+            <div class="mdr-settings-card-item">
+              <label class="mdr-switch-row">
+                <div class="mdr-switch-info">
+                  <div class="mdr-switch-title">打开文件或目录后显示刷新提醒</div>
+                  <div class="mdr-switch-desc">提醒通过选择或拖入打开的内容在刷新后可能需要重新打开。</div>
+                </div>
+                <span class="mdr-switch">
+                  <input id="pref-show-drop-refresh-notice" type="checkbox" checked>
+                  <span class="mdr-switch-track"></span>
+                </span>
+              </label>
+            </div>
+
+            <div class="mdr-settings-section-title">自动滚动阅读</div>
+            <div class="mdr-settings-card-item">
+              <div class="mdr-row-desc mdr-auto-default-description">作为每篇文档自动滚动的默认值。文档右上角可以临时调整，临时设置不会影响这里，关闭文档后自动失效。</div>
+              <div class="mdr-pill-presets mdr-auto-default-presets">
+                <button type="button" class="mdr-pill-btn" data-auto-default-preset data-interval="40" data-amount="1">◴ 精读</button>
+                <button type="button" class="mdr-pill-btn" data-auto-default-preset data-interval="25" data-amount="1">▤ 适中</button>
+                <button type="button" class="mdr-pill-btn" data-auto-default-preset data-interval="12" data-amount="2">ϟ 速览</button>
+              </div>
+              <div class="mdr-auto-default-speed">当前基准速度：约 <strong id="auto-default-speed">50</strong> 像素/秒 <span id="auto-default-speed-label">舒适匀速</span></div>
+              <div class="mdr-auto-default-field"><span>◷ 默认滚动间隔</span><div><button type="button" data-auto-default-step="interval" data-step="-5" aria-label="减少默认滚动间隔">−</button><input id="pref-auto-interval" type="number" min="1" max="15000" step="1" aria-label="默认滚动间隔"><button type="button" data-auto-default-step="interval" data-step="5" aria-label="增加默认滚动间隔">+</button><small>毫秒</small></div></div>
+              <div class="mdr-auto-default-field"><span>↕ 默认滚动幅度</span><div><button type="button" data-auto-default-step="amount" data-step="-1" aria-label="减少默认滚动幅度">−</button><input id="pref-auto-amount" type="number" min="1" max="800" step="1" aria-label="默认滚动幅度"><button type="button" data-auto-default-step="amount" data-step="1" aria-label="增加默认滚动幅度">+</button><small>点</small></div></div>
+            </div>
+          </section>
+
+          <!-- 3. 导出设置 Panel -->
+          <section class="mdr-settings-panel" data-tab-panel="export">
+            <div class="mdr-settings-section-title">文档转长图</div>
+            <div class="mdr-settings-card-item">
+              <div class="mdr-settings-row-between">
+                <div class="mdr-settings-title-group">
+                  <div class="mdr-row-title">单张图片最大高度限制</div>
+                  <div class="mdr-row-desc">超过该高度后，文档转图片将自动按阅读逻辑平滑拆分为多张高清图片并顺序编号。</div>
+                </div>
+                <div class="mdr-header-actions">
+                  <button type="button" class="mdr-mini-btn" id="pref-height-reset">重置默认</button>
+                  <output id="image-height-output" class="mdr-badge-output">50,000 px</output>
+                </div>
+              </div>
+              <div class="mdr-slider-box">
+                <div class="mdr-slider-wrap">
+                  <input id="pref-image-height" type="range" step="2500" value="50000">
+                </div>
+                <div class="mdr-slider-ticks">
+                  <span>5,000 px</span>
+                  <span>50,000 px (默认)</span>
+                  <span>100,000 px</span>
+                </div>
+              </div>
+              <div class="mdr-pill-presets">
+                <button type="button" class="mdr-pill-btn" data-height="15000">15,000 px</button>
+                <button type="button" class="mdr-pill-btn" data-height="30000">30,000 px</button>
+                <button type="button" class="mdr-pill-btn" data-height="50000" data-height-default>50,000 px (默认)</button>
+                <button type="button" class="mdr-pill-btn" data-height="80000">80,000 px</button>
+                <button type="button" class="mdr-pill-btn" data-height="100000" data-height-max>100,000 px (最大)</button>
+              </div>
+            </div>
+
+            <div class="mdr-settings-section-title">图片清晰度</div>
+            <div class="mdr-settings-card-item">
+              <div class="mdr-settings-row-between">
+                <div class="mdr-settings-title-group">
+                  <div class="mdr-row-title">导出像素比</div>
+                  <div class="mdr-row-desc">数值越高，导出图片越清晰，同时会增加内存占用和导出时间。</div>
+                </div>
+                <output id="image-pixel-ratio-output" class="mdr-badge-output">1.5×</output>
+              </div>
+              <div class="mdr-slider-box">
+                <div class="mdr-slider-wrap">
+                  <input id="pref-image-pixel-ratio" type="range" min="1" max="4" step="0.1" value="1.5" aria-label="导出像素比">
+                </div>
+                <div class="mdr-slider-ticks">
+                  <span>1.0×</span>
+                  <span>1.5× (默认)</span>
+                  <span>4.0× (最大)</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="mdr-settings-section-title">导出图片下载</div>
+            <div class="mdr-settings-card-item">
+              <div class="mdr-settings-row-header">
+                <div class="mdr-row-title">网络图片下载失败时自动重试</div>
+                <div class="mdr-row-desc">导出长图或 PDF 时若包含外部网络图片，遇网络波动将按设定规则重试，超时后显示失败占位图。</div>
+              </div>
+              <div class="mdr-param-grid">
+                <!-- 重试次数 -->
+                <div class="mdr-param-item">
+                  <div class="mdr-param-meta">
+                    <span class="mdr-param-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="23 4 23 10 17 10"></polyline>
+                        <path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"></path>
+                      </svg>
+                    </span>
+                    <div class="mdr-param-text">
+                      <span class="mdr-param-name">失败重试次数</span>
+                      <span class="mdr-param-sub">0 ~ 10 次，0 表示不重试</span>
+                    </div>
+                  </div>
+                  <div class="mdr-stepper-wrap">
+                    <button type="button" class="mdr-stepper-btn" data-step-target="retries" data-step="-1" aria-label="减少重试次数">−</button>
+                    <input id="pref-image-export-retries" class="mdr-stepper-input" type="number" min="0" max="10" step="1" aria-label="图片下载失败重试次数">
+                    <button type="button" class="mdr-stepper-btn" data-step-target="retries" data-step="1" aria-label="增加重试次数">+</button>
+                    <span class="mdr-stepper-unit">次</span>
+                  </div>
+                </div>
+                <div class="mdr-param-divider"></div>
+                <!-- 单次请求超时 -->
+                <div class="mdr-param-item">
+                  <div class="mdr-param-meta">
+                    <span class="mdr-param-icon" aria-hidden="true">
+                      <svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <polyline points="12 6 12 12 16 14"></polyline>
+                      </svg>
+                    </span>
+                    <div class="mdr-param-text">
+                      <span class="mdr-param-name">单次请求超时</span>
+                      <span class="mdr-param-sub">单张网络图片最长等待时长</span>
+                    </div>
+                  </div>
+                  <div class="mdr-stepper-wrap">
+                    <button type="button" class="mdr-stepper-btn" data-step-target="timeout" data-step="-5" aria-label="减少请求超时时间">−</button>
+                    <input id="pref-image-export-timeout" class="mdr-stepper-input" type="number" min="5" max="120" step="5" aria-label="图片下载请求超时时间">
+                    <button type="button" class="mdr-stepper-btn" data-step-target="timeout" data-step="5" aria-label="增加请求超时时间">+</button>
+                    <span class="mdr-stepper-unit">秒</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </section>
+
+          <!-- 4. 数据与隐私 Panel -->
+          <section class="mdr-settings-panel" data-tab-panel="data" hidden>
+            <div class="mdr-settings-section-title">本地存储与隐私</div>
+            <div class="mdr-settings-card-item">
+              <div class="mdr-security-badge">
+                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm-2 16l-4-4 1.41-1.41L10 14.17l6.59-6.59L18 9l-8 8z"/></svg>
+                <span>隐私安全保证：您的文档完全运行在本地浏览器沙箱中，绝不上传任何外部网络。</span>
+              </div>
+            </div>
+
+            <div class="mdr-settings-section-title">危险操作</div>
+            <div class="mdr-settings-card-item mdr-danger-card">
+              <div class="mdr-settings-row-between">
+                <div>
+                  <div class="mdr-row-title mdr-danger-title">
+                    <span>清除所有本地数据与缓存</span>
+                    <span class="mdr-badge-danger">不可撤销</span>
+                  </div>
+                  <div class="mdr-row-desc">将彻底清空保存在此 Chrome 中的 IndexedDB 工作区、已打开标签、本地目录树展开记录及个性化偏好。您的原始本地 Markdown 文件不会受到任何改动。</div>
+                </div>
+                <button type="button" class="mdr-danger-btn" id="btn-clear-all-data">
+                  <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/></svg>
+                  <span>清除所有数据</span>
+                </button>
+              </div>
+            </div>
+          </section>
+
+          <!-- 5. 关于软件 Panel -->
+          <section class="mdr-settings-panel" data-tab-panel="about">
+            <div class="mdr-about-center">
+              <img src="icon128.png" alt="Shiming Markdown" class="mdr-about-logo">
+              <div class="mdr-about-name">Shiming Markdown</div>
+              <div class="mdr-about-version">Chrome MV3</div>
+              <p class="mdr-about-desc">
+                高颜值、现代化的原生 Markdown 阅读器。<br>
+                支持 LaTeX 矢量数学公式、Mermaid 流程图拓扑、Viewer.js 沉浸大图与多根目录浏览。
+              </p>
+              <div class="mdr-about-badges">
+                <span class="mdr-about-badge">Chrome MV3</span>
+                <span class="mdr-about-badge">KaTeX 矢量公式</span>
+                <span class="mdr-about-badge">Mermaid 拓扑</span>
+                <span class="mdr-about-badge">Viewer.js 4K 沉浸</span>
+                <span class="mdr-about-badge">本地绝对安全</span>
+              </div>
+              <div class="mdr-about-links">
+                <a class="mdr-about-card mdr-about-website" href="https://md.withqq.com/" target="_blank" rel="noopener noreferrer" title="访问官方网站：md.withqq.com">
+                  <div class="mdr-about-card-icon">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <circle cx="12" cy="12" r="10"/>
+                      <line x1="2" y1="12" x2="22" y2="12"/>
+                      <path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/>
+                    </svg>
+                  </div>
+                  <div class="mdr-about-card-info">
+                    <span class="mdr-about-card-label">官方主页</span>
+                    <span class="mdr-about-card-val">md.withqq.com</span>
+                  </div>
+                  <div class="mdr-about-card-action">
+                    <span class="mdr-about-card-action-text">访问</span>
+                    <svg class="mdr-about-external-icon" viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <path d="M6 3h7v7M13 3 5 11"/>
+                    </svg>
+                  </div>
+                </a>
+
+                <button class="mdr-about-card mdr-about-contact" id="mdr-about-copy-contact" type="button" data-email="puppylyx@gmail.com" title="点击复制联系邮箱 puppylyx@gmail.com" aria-label="复制联系方式 puppylyx@gmail.com">
+                  <div class="mdr-about-card-icon">
+                    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="2" y="4" width="20" height="16" rx="3"/>
+                      <path d="m22 7-8.97 5.7a1.94 1.94 0 0 1-2.06 0L2 7"/>
+                    </svg>
+                  </div>
+                  <div class="mdr-about-card-info">
+                    <span class="mdr-about-card-label">联系与反馈</span>
+                    <span class="mdr-about-card-val">puppylyx@gmail.com</span>
+                  </div>
+                  <div class="mdr-about-card-action">
+                    <span class="mdr-about-card-action-text mdr-copy-text">复制</span>
+                    <svg class="mdr-copy-icon-default" viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+                      <rect x="5" y="5" width="8" height="9" rx="1.5"/>
+                      <path d="M10.5 5V3.5A1.5 1.5 0 0 0 9 2H4.5A1.5 1.5 0 0 0 3 3.5V10a1.5 1.5 0 0 0 1.5 1.5H5"/>
+                    </svg>
+                    <svg class="mdr-copy-icon-done" viewBox="0 0 16 16" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                      <polyline points="3.5 8.5 6.5 11.5 12.5 4.5"/>
+                    </svg>
+                  </div>
+                </button>
+              </div>
+              <div class="mdr-about-copyright">
+                © 2026 Lumina Studio. 保留所有权利。
+              </div>
+            </div>
+          </section>
+        </div>
+      </main>
+      </div>
+    </div>
+  </div>
+</body>
+</html>
