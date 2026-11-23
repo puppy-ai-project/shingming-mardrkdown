@@ -1,45 +1,47 @@
 # Shiming Markdown for Chrome
 
-Shiming Markdown is a Chrome extension for reading and working with Markdown documents in the browser. It supports local files and directories, as well as remote Markdown pages.
+Shiming Markdown 是一款 Chrome 扩展，帮助你在浏览器中阅读和处理 Markdown 文档，支持本地文件、目录和远程 Markdown 页面。
 
-## Features
+[从 Chrome 网上应用店安装 Shiming Markdown](https://chromewebstore.google.com/detail/shiming-markdown/lhomgmdolfgfbpamgdjmkmicjemhljof)
 
-- Read local Markdown files and browse user-selected directories.
-- Open multiple documents in tabs with outline and directory navigation.
-- Search across selected directories and open documents.
-- Render GitHub Flavored Markdown, code blocks, math, and Mermaid diagrams.
-- Edit files opened with a writable file handle and save changes automatically.
-- Export documents, tables, code blocks, and diagrams as images or PDF.
-- Customize themes, reading layout, and code display preferences.
+## 功能
 
-Local file and directory access is granted by the user through Chrome's file picker. The extension does not silently scan arbitrary paths. File handles and workspace state are stored in the browser profile; Markdown source is not uploaded to a service by the extension.
+- 阅读本地 Markdown 文件，并浏览用户选择的目录。
+- 在多个标签页中打开文档，并使用大纲和目录导航。
+- 搜索已选目录和已打开文档中的内容。
+- 渲染 GitHub Flavored Markdown、代码块、数学公式和 Mermaid 图表。
+- 使用可写文件句柄打开的文件支持编辑和自动保存。
+- 将文档、表格、代码块和图表导出为图片或 PDF。
+- 自定义主题、阅读布局和代码显示方式。
 
-## Development
+本地文件和目录仅在用户通过 Chrome 文件选择器授权后访问。扩展不会在用户不知情的情况下扫描任意路径。文件句柄和工作区状态保存在当前浏览器配置中；扩展不会将 Markdown 原文上传到服务端。
 
-Requirements: Node.js and npm.
+## 开发
+
+需要安装 Node.js 和 npm。
 
 ```sh
 npm ci
 npm run dev
 ```
 
-In `chrome://extensions`, enable **Developer mode**, select **Load unpacked**, and choose this project's generated `dist/` directory. The development command watches source files and rebuilds `dist/`; reload the extension from Chrome after changes.
+在 `chrome://extensions` 中开启“开发者模式”，选择“加载已解压的扩展程序”，并选择本项目生成的 `dist/` 目录。开发命令会监听源文件并重新生成 `dist/`；每次构建后，请在 Chrome 扩展管理页面重新加载扩展。
 
-## Production build
+## 生产构建
 
 ```sh
 npm run build
 ```
 
-This creates the loadable extension under `dist/` and a Chrome Web Store ZIP under `release/`. The production build bundles and minifies JavaScript; it does not intentionally obfuscate the code. Do not load `src/` or `static/` directly.
+构建结果包括可加载的扩展目录 `dist/`，以及用于提交到 Chrome 网上应用店的 ZIP 包 `release/`。生产构建会打包并压缩 JavaScript，不会刻意混淆代码。请勿直接加载 `src/` 或 `static/`。
 
-## Browser-specific behavior
+## 浏览器版说明
 
-- To render a Markdown file opened directly through a `file://` URL, enable **Allow access to file URLs** on the extension details page.
-- Directly opened local files are read-only because Chrome does not provide the extension with a writable file handle for that page. Use **Open file** to grant a writable handle for editing and autosave.
-- Directory handles and workspace state are stored in the current Chrome profile. Access can be revoked in Chrome's extension or site settings.
-- Native operating-system file association, Finder integration, and macOS account or license features are not part of the browser edition.
+- 如需直接打开 `file://` 地址阅读 Markdown 文件，请在扩展详情页启用“允许访问文件网址”。
+- 直接通过浏览器打开的本地文件为只读，因为 Chrome 不会向扩展提供该文件的可写句柄。需要编辑和自动保存时，请使用“打开文件”并授权可写句柄。
+- 目录句柄和工作区状态保存在当前 Chrome 配置中。你可以在 Chrome 的扩展或网站设置中撤销访问权限。
+- 浏览器版不包含原生操作系统文件关联、Finder 集成，以及 macOS 账户或许可功能。
 
-## Acknowledgements
+## 致谢
 
-Shiming Markdown for Chrome was developed with inspiration from the open-source [md-reader](https://github.com/md-reader/md-reader) project. We appreciate its work on browser-based Markdown reading. Shiming Markdown is an independent project and is not an official fork or release of md-reader.
+Shiming Markdown for Chrome 的开发参考了开源项目 [md-reader](https://github.com/md-reader/md-reader)。感谢该项目在浏览器 Markdown 阅读体验方面的探索与贡献。Shiming Markdown 是独立项目，并非 md-reader 的官方分支或发行版本。
