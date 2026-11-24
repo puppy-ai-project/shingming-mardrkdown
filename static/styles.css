@@ -1294,6 +1294,39 @@ body.is-resizing-sidebar iframe {
   transition: color 0.16s ease, background 0.16s ease, border-color 0.16s ease;
 }
 
+.sidebar-open-source-link {
+  display: inline-flex;
+  flex: 0 0 30px;
+  width: 30px;
+  height: 30px;
+  align-items: center;
+  justify-content: center;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  color: var(--text-muted);
+  text-decoration: none;
+  transition: color 0.16s ease, background 0.16s ease, border-color 0.16s ease;
+}
+
+.sidebar-open-source-link:hover,
+.sidebar-open-source-link:focus-visible {
+  color: var(--text-title);
+  background: rgba(0, 0, 0, 0.05);
+  border-color: rgba(0, 0, 0, 0.04);
+}
+
+:root[data-theme="dark"] .sidebar-open-source-link:hover,
+:root[data-theme="dark"] .sidebar-open-source-link:focus-visible,
+html.dark .sidebar-open-source-link:hover,
+html.dark .sidebar-open-source-link:focus-visible {
+  color: #f0f6fc;
+  background: rgba(255, 255, 255, 0.08);
+  border-color: rgba(255, 255, 255, 0.06);
+}
+
+.sidebar-open-source-link:active { transform: scale(0.96); }
+.sidebar-open-source-link svg { display: block; }
+
 .sidebar-collapse-button:hover {
   color: var(--text-title);
   background: rgba(0, 0, 0, 0.05);
@@ -4167,20 +4200,6 @@ html.dark .mdr-granted-icon {
 .mdr-content h4 { font-size: 1.15rem; }
 .mdr-content h5 { font-size: 1.0rem; }
 .mdr-content h6 { font-size: 0.9rem; color: var(--text-muted); }
-
-/* 标题悬停微交互与左侧主色指示条 */
-.mdr-content h1:hover,
-.mdr-content h2:hover,
-.mdr-content h3:hover,
-.mdr-content h4:hover,
-.mdr-content h5:hover,
-.mdr-content h6:hover {
-  color: var(--primary-color);
-  background-color: var(--bg-body);
-  background-color: color-mix(in srgb, var(--primary-color) 10%, var(--bg-body));
-  box-shadow: inset 3px 0 0 var(--primary-color);
-  border-radius: 0;
-}
 
 /* 内联代码与链接 (Inline Code & Link) */
 .mdr-content code:not(pre code) {
